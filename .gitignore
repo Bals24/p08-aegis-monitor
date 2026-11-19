@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.env
+*.log
+.vscode/
+.idea/
+pgdata/
+promdata/
+grafdata/
+ollama_data/
+node_modules/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
