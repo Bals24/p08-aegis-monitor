@@ -42,17 +42,13 @@ async def check_target(target: dict):
     name = target["name"]
     try:
         start_time = asyncio.get_event_loop().time()
-        async with httpx.AsyncClient(
-            timeout=5.0, follow_redirects=True
-        ) as client:
+        async with httpx.AsyncClient(timeout=5.0, follow_redirects=True) as client:
             response = await client.request(method, url)
             latency = asyncio.get_event_loop().time() - start_time
 
             is_up = 1 if response.status_code < 400 else 0
             WEBSITE_UP.labels(url=url, method=method).set(is_up)
-            WEBSITE_RESPONSE_TIME.labels(
-                url=url, method=method
-            ).observe(latency)
+            WEBSITE_RESPONSE_TIME.labels(url=url, method=method).observe(latency)
 
             TARGETS_STATUS[url] = {
                 "name": name,

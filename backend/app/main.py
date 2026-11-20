@@ -52,9 +52,9 @@ async def metrics_middleware(request: Request, call_next):
         endpoint=request.url.path,
         http_status=response.status_code,
     ).inc()
-    REQUEST_LATENCY.labels(
-        method=request.method, endpoint=request.url.path
-    ).observe(time.time() - start_time)
+    REQUEST_LATENCY.labels(method=request.method, endpoint=request.url.path).observe(
+        time.time() - start_time
+    )
     return response
 
 
