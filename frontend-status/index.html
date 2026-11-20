@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis - Statut des Services</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #1a202c; margin-bottom: 30px; }
+        .service { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #e2e8f0; }
+        .service:last-child { border-bottom: none; }
+        .status { padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+        .status.UP { background: #c6f6d5; color: #22543d; }
+        .status.DOWN { background: #fed7d7; color: #822727; }
+        .status.unknown { background: #feebc8; color: #744210; }
+        .meta { font-size: 0.85em; color: #718096; margin-top: 4px; }
+        .refresh { text-align: center; margin-top: 20px; color: #718096; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Aegis Monitor - Statut des Services</h1>
+        <div id="services-list">Chargement...</div>
+        <div class="refresh">Actualisation automatique toutes les 15s</div>
+    </div>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const response = await fetch('http://localhost:8000/api/status');
+                const data = await response.json();
+                const container = document.getElementById('services-list');
+                container.innerHTML = '';
+                
+                data.targets.forEach(service => {
+                    const div = document.createElement('div');
+                    div.className = 'service';
+                    const statusClass = service.status === 'UP' ? 'UP' : (service.status === 'DOWN' ? 'DOWN' : 'unknown');
+                    div.innerHTML = `
+                        <div>
+                            <strong>${service.name}</strong>
+                            <div class="meta">${service.url} • Dernière vérif: ${service.last_check} ${service.latency ? '• ' + service.latency + ' ms' : ''}</div>
+                        </div>
+                        <span class="status ${statusClass}">${service.status}</span>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                document.getElementById('services-list').innerHTML = '<p style="color:red;text-align:center">Impossible de joindre l\'API.</p>';
+            }
+        }
+        fetchStatus();
+        setInterval(fetchStatus, 15000);
+    </script>
+</body>
+</html>

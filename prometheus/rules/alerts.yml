@@ -1,0 +1,11 @@
+groups:
+  - name: website_availability
+    rules:
+      - alert: WebsiteDown
+        expr: aegis_website_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Le site {{ $labels.url }} est en panne"
+          description: "Le site {{ $labels.url }} ne répond pas (status DOWN) depuis plus de 30 secondes."
