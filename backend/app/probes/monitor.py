@@ -1,13 +1,12 @@
 import asyncio
-import httpx
-from prometheus_client import Gauge, Histogram
 from datetime import datetime
 
-# Métriques Prometheus
+import httpx
+from prometheus_client import Gauge, Histogram
+
 WEBSITE_UP = Gauge('aegis_website_up', '1 si le site est en ligne, 0 sinon', ['url', 'method'])
 WEBSITE_RESPONSE_TIME = Histogram('aegis_website_response_time_seconds', 'Temps de réponse en secondes', ['url', 'method'])
 
-# État en mémoire pour la page de statut publique
 TARGETS_STATUS = {}
 
 TARGETS = [
@@ -16,7 +15,6 @@ TARGETS = [
     {"url": "http://site-inexistant-test-12345.com", "method": "GET", "name": "Site Test (Panne volontaire)"}
 ]
 
-# Initialiser l'état
 for t in TARGETS:
     TARGETS_STATUS[t["url"]] = {"name": t["name"], "status": "unknown", "latency": 0, "last_check": "Never"}
 
@@ -37,7 +35,7 @@ async def check_target(target: dict):
             TARGETS_STATUS[url] = {
                 "name": name,
                 "status": "UP" if is_up else "DOWN",
-                "latency": round(latency * 1000, 2), # en ms
+                "latency": round(latency * 1000, 2),
                 "last_check": datetime.now().strftime("%H:%M:%S"),
                 "code": response.status_code
             }
@@ -52,8 +50,8 @@ async def check_target(target: dict):
         }
 
 async def background_monitoring_task():
-    print("🕵️‍♂️ [PROBES] Démarrage de la surveillance en arrière-plan...")
+    print(" [PROBES] Démarrage de la surveillance en arrière-plan...")
     while True:
         tasks = [check_target(target) for target in TARGETS]
         await asyncio.gather(*tasks)
-        await asyncio.sleep(15) # Vérification toutes les 15 secondes
+        await asyncio.sleep(15)
