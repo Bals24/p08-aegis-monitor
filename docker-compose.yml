@@ -3,19 +3,19 @@ services:
   backend:
     build: ./backend
     container_name: aegis-backend
-    ports:
-      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://aegis:aegis@postgres:5432/aegis
       - PROMETHEUS_URL=http://prometheus:9090
       - OLLAMA_URL=http://ollama:11434
       - KEYCLOAK_URL=http://keycloak:8080
       - KEYCLOAK_REALM=aegis
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
     depends_on:
       - postgres
       - prometheus
-      - ollama
-    networks: [aegis-net]
+    networks:
+      - aegis-net
     restart: unless-stopped
 
   # === BASE DE DONNÉES ===
@@ -28,7 +28,8 @@ services:
       POSTGRES_DB: aegis
     volumes:
       - pgdata:/var/lib/postgresql/data
-    networks: [aegis-net]
+    networks:
+      - aegis-net
 
   # === MÉTRIQUES (Prometheus) ===
   prometheus:
@@ -43,7 +44,8 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=15d'
-    networks: [aegis-net]
+    networks:
+      - aegis-net
 
   # === VISUALISATION (Grafana) ===
   grafana:
@@ -53,13 +55,14 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_AUTH_GENERIC_OAUTH_ENABLED=true
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
       - grafdata:/var/lib/grafana
-    depends_on: [prometheus]
-    networks: [aegis-net]
+    depends_on:
+      - prometheus
+    networks:
+      - aegis-net
 
   # === ALERTES ===
   alertmanager:
@@ -69,7 +72,8 @@ services:
       - "9093:9093"
     volumes:
       - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
-    networks: [aegis-net]
+    networks:
+      - aegis-net
 
   # === IA LOCALE (Ollama) ===
   ollama:
@@ -79,13 +83,8 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
-    networks: [aegis-net]
-    # Décommenter si GPU NVIDIA
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - capabilities: [gpu]
+    networks:
+      - aegis-net
 
   # === IAM (Keycloak) ===
   keycloak:
@@ -97,18 +96,10 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD:-admin}
     ports:
       - "8080:8080"
-    networks: [aegis-net]
+    networks:
+      - aegis-net
 
-volumes:
-  pgdata:
-  promdata:
-  grafdata:
-  ollama_data:
-
-networks:
-  aegis-net:
-    driver: bridge
-
+  # === REVERSE PROXY HTTPS (Caddy) ===
   caddy:
     image: caddy:2-alpine
     container_name: aegis-caddy
@@ -126,5 +117,15 @@ networks:
       - grafana
     networks:
       - aegis-net
-    caddy_data:
-    caddy_config:
+
+volumes:
+  pgdata:
+  promdata:
+  grafdata:
+  ollama_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  aegis-net:
+    driver: bridge
