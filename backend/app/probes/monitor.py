@@ -40,7 +40,9 @@ AEGIS_MONITORING_SITES_TOTAL = Gauge(
 
 
 class SiteState:
-    def __init__(self, url: str, name: str, method: str = "GET", expected_keyword: str = ""):
+    def __init__(
+        self, url: str, name: str, method: str = "GET", expected_keyword: str = ""
+    ):
         self.url = url
         self.name = name
         self.method = method
@@ -56,7 +58,9 @@ class SiteState:
 TARGETS = [
     SiteState("https://www.google.com", "Google Search", expected_keyword="Search"),
     SiteState("https://github.com", "GitHub Home", expected_keyword="Sign in"),
-    SiteState("http://site-inexistant-test-12345.com", "Site E-commerce (Panne simulée)"),
+    SiteState(
+        "http://site-inexistant-test-12345.com", "Site E-commerce (Panne simulée)"
+    ),
 ]
 
 AEGIS_MONITORING_SITES_TOTAL.set(len(TARGETS))
@@ -75,10 +79,12 @@ async def check_site(state: SiteState):
 
             state.http_status = response.status_code
             state.response_time_ms = round(latency * 1000, 2)
-            
+
             is_content_valid = True
             if state.expected_keyword:
-                is_content_valid = state.expected_keyword.lower() in response.text.lower()
+                is_content_valid = (
+                    state.expected_keyword.lower() in response.text.lower()
+                )
 
             if response.status_code < 400 and is_content_valid:
                 state.status = "UP"
@@ -98,7 +104,7 @@ async def check_site(state: SiteState):
         state.consecutive_failures += 1
         AEGIS_PROBE_FAILURES_TOTAL.labels(url=state.url, name=state.name).inc()
         AEGIS_SITE_UP.labels(url=state.url, name=state.name).set(0)
-        
+
     except httpx.RequestError as e:
         state.status = "DOWN"
         state.error = str(e)
@@ -107,9 +113,13 @@ async def check_site(state: SiteState):
         AEGIS_SITE_UP.labels(url=state.url, name=state.name).set(0)
 
     if state.response_time_ms is not None:
-        AEGIS_RESPONSE_TIME_SECONDS.labels(url=state.url, name=state.name).set(state.response_time_ms / 1000)
+        AEGIS_RESPONSE_TIME_SECONDS.labels(url=state.url, name=state.name).set(
+            state.response_time_ms / 1000
+        )
     if state.http_status is not None:
-        AEGIS_HTTP_STATUS_CODE.labels(url=state.url, name=state.name).set(state.http_status)
+        AEGIS_HTTP_STATUS_CODE.labels(url=state.url, name=state.name).set(
+            state.http_status
+        )
 
     status_emoji = "✅" if state.status == "UP" else "❌"
     logger.info(

@@ -36,7 +36,7 @@ async def add_site(site: SiteCreate):
     """Ajoute un nouveau site à la surveillance (MVP en mémoire)."""
     if any(s.url == site.url for s in TARGETS):
         return {"message": "Site déjà surveillé"}
-    
+
     new_state = SiteState(
         url=site.url,
         name=site.name,
