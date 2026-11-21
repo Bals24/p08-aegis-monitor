@@ -108,3 +108,23 @@ volumes:
 networks:
   aegis-net:
     driver: bridge
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: aegis-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - grafana
+    networks:
+      - aegis-net
+    caddy_data:
+    caddy_config:

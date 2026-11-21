@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Monitor - Tableau de Bord</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <style>
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .animate-pulse-ring::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: inherit;
+            border-radius: 50%;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
+    <div class="max-w-6xl mx-auto p-6">
+        <!-- En-tête du Dashboard -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-700 pb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+                    🛡️ Aegis Monitor 
+                    <span class="text-sm font-normal text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">Tableau de Bord Unifié</span>
+                </h1>
+                <p class="text-slate-400 mt-2">Surveillance temps réel, métriques de performance et alertes intelligentes (Projet P08 ESTI).</p>
+            </div>
+            <div class="text-right">
+                <div class="flex items-center justify-end gap-2 text-sm text-emerald-400 bg-emerald-400/10 px-4 py-2 rounded-full border border-emerald-400/20">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    Système opérationnel
+                </div>
+                <div class="text-xs text-slate-500 mt-2">Actualisation automatique : 15s</div>
+            </div>
+        </div>
+
+        <!-- Cartes Résumé (KPI) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Sites Surveillés</div>
+                <div class="text-4xl font-bold text-white mt-2" id="total-sites">-</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Disponibilité Globale</div>
+                <div class="text-4xl font-bold text-emerald-400 mt-2" id="uptime-percent">-%</div>
+            </div>
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
+                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Incidents Actifs</div>
+                <div class="text-4xl font-bold text-red-400 mt-2" id="active-incidents">-</div>
+            </div>
+        </div>
+
+        <!-- Liste des Services -->
+        <h2 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">📡 État des Services</h2>
+        <div id="services-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-800 rounded-xl p-8 text-center text-slate-500 col-span-full border border-slate-700">
+                <div class="animate-pulse flex flex-col items-center gap-3">
+                    <div class="h-8 w-8 bg-slate-700 rounded-full"></div>
+                    <div>Chargement du tableau de bord...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <div class="mt-12 pt-6 border-t border-slate-800 text-center text-slate-600 text-sm flex flex-col md:flex-row justify-between items-center gap-2">
+            <span>Projet P08 ESTI – Licence 2 Informatique (Poussé M2)</span>
+            <span class="font-mono text-slate-700">v1.0.0 | FastAPI + Prometheus + Grafana</span>
+        </div>
+    </div>
+
+    <script>
+        async function updateDashboard() {
+            try {
+                // Chemin relatif : ZÉRO problème de CORS car servi par la même API
+                const response = await fetch('/api/sites');
+                if (!response.ok) throw new Error("API unreachable");
+                const sites = await response.json();
+                
+                const container = document.getElementById('services-list');
+                container.innerHTML = '';
+                
+                let upCount = 0;
+                let downCount = 0;
+
+                sites.forEach(site => {
+                    const isUp = site.status === 'UP';
+                    if (isUp) upCount++; else downCount++;
+
+                    const statusColor = isUp ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5';
+                    const statusDot = isUp ? 'bg-emerald-500' : 'bg-red-500';
+                    const statusText = isUp ? 'OPÉRATIONNEL' : 'EN PANNE';
+                    
+                    const latencyText = site.response_time_ms ? `${site.response_time_ms} ms` : 'N/A';
+                    const errorBlock = site.error ? `
+                        <div class="mt-4 p-3 bg-red-900/20 border border-red-500/20 rounded-lg">
+                            <div class="text-xs text-red-400 font-mono flex items-center gap-2">
+                                <span>⚠️</span> ${site.error}
+                            </div>
+                            <div class="text-xs text-red-300/70 mt-1">Échecs consécutifs : <span class="font-bold text-red-400">${site.consecutive_failures}</span></div>
+                        </div>
+                    ` : `<div class="mt-4 text-xs text-emerald-400/70 flex items-center gap-1">✅ Dernière vérification réussie</div>`;
+
+                    const div = document.createElement('div');
+                    div.className = `rounded-xl p-5 border ${statusColor} transition-all hover:scale-[1.01] hover:shadow-xl duration-300`;
+                    div.innerHTML = `
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-white text-lg truncate">${site.name}</h3>
+                                <a href="${site.url}" target="_blank" class="text-sm text-blue-400 hover:text-blue-300 hover:underline break-all transition-colors">${site.url}</a>
+                                ${errorBlock}
+                            </div>
+                            <div class="text-right sm:text-right min-w-[120px]">
+                                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${isUp ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-red-500/30 text-red-400 bg-red-500/10'}">
+                                    <span class="relative flex h-2.5 w-2.5">
+                                        ${!isUp ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>' : ''}
+                                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 ${statusDot}"></span>
+                                    </span>
+                                    ${statusText}
+                                </span>
+                                <div class="text-xs text-slate-400 mt-4">Latence: <span class="font-mono text-white font-medium">${latencyText}</span></div>
+                                <div class="text-xs text-slate-500 mt-1">${site.last_checked_at ? new Date(site.last_checked_at).toLocaleTimeString('fr-FR') : 'Jamais'}</div>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+
+                // Mise à jour des KPI
+                document.getElementById('total-sites').textContent = sites.length;
+                document.getElementById('active-incidents').textContent = downCount;
+                const uptime = sites.length > 0 ? Math.round((upCount / sites.length) * 100) : 0;
+                document.getElementById('uptime-percent').textContent = `${uptime}%`;
+
+            } catch (error) {
+                document.getElementById('services-list').innerHTML = `
+                    <div class="bg-red-900/20 border border-red-500/30 rounded-xl p-6 text-center text-red-400 col-span-full">
+                        ⚠️ Impossible de joindre l'API. Le moteur de monitoring est peut-être en cours de démarrage.
+                    </div>`;
+            }
+        }
+        
+        // Premier chargement et rafraîchissement toutes les 15 secondes
+        updateDashboard();
+        setInterval(updateDashboard, 15000);
+    </script>
+</body>
+</html>

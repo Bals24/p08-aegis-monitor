@@ -1,0 +1,29 @@
+# Caddyfile - Reverse Proxy sécurisé avec HTTPS automatique
+localhost {
+    # Génère un certificat HTTPS local auto-signé
+    tls internal
+
+    # En-têtes de sécurité stricts (HSTS, X-Frame-Options, etc.)
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Route vers l'API FastAPI et le Dashboard
+    handle /api/* /metrics /docs* /openapi.json /health /static/* {
+        reverse_proxy backend:8000
+    }
+
+    # Route vers Grafana (avec rewrite du prefix)
+    handle /grafana/* {
+        uri strip_prefix /grafana
+        reverse_proxy grafana:3000
+    }
+
+    # Route par défaut vers le Dashboard
+    handle {
+        reverse_proxy backend:8000
+    }
+}
