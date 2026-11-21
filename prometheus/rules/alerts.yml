@@ -1,11 +1,20 @@
 groups:
   - name: website_availability
     rules:
-      - alert: WebsiteDown
-        expr: aegis_website_up == 0
-        for: 30s
+      - alert: SiteDownCritical
+        expr: aegis_site_up == 0
+        for: 45s  # Attend 3 cycles de sonde (15s x 3) avant d'alerter
         labels:
           severity: critical
         annotations:
-          summary: "Le site {{ $labels.url }} est en panne"
-          description: "Le site {{ $labels.url }} ne répond pas (status DOWN) depuis plus de 30 secondes."
+          summary: "🚨 Le site {{ $labels.name }} est en panne"
+          description: "Le site {{ $labels.url }} est inaccessible ou ne répond pas aux critères attendus depuis plus de 45 secondes."
+
+      - alert: SiteRecovered
+        expr: aegis_site_up == 1
+        for: 15s
+        labels:
+          severity: info
+        annotations:
+          summary: "🟢 Le site {{ $labels.name }} est de nouveau en ligne"
+          description: "Le site {{ $labels.url }} a récupéré et répond normalement."

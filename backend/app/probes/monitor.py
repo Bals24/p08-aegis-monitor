@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 
 import httpx
 from prometheus_client import Counter, Gauge
