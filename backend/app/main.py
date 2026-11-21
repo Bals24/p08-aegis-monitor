@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, make_asgi_app
 
 from app.api.alerts import router as alerts_router
-from app.api.sites import router as sites_router # <-- NOUVEAU
+from app.api.sites import router as sites_router
 from app.probes.monitor import background_monitoring_task
 
 REQUEST_COUNT = Counter(
@@ -21,12 +21,14 @@ REQUEST_LATENCY = Histogram(
     ["method", "endpoint"],
 )
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Aegis Monitor API starting...")
     asyncio.create_task(background_monitoring_task())
     yield
     print("👋 Aegis Monitor API shutting down...")
+
 
 app = FastAPI(
     title="Aegis Monitor API",
@@ -42,9 +44,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Enregistrement des routes
-app.include_router(sites_router)   # <-- NOUVEAU
+app.include_router(sites_router)
 app.include_router(alerts_router)
+
 
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
@@ -60,8 +62,10 @@ async def metrics_middleware(request: Request, call_next):
     ).observe(time.time() - start_time)
     return response
 
+
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
+
 
 @app.get("/health")
 async def health():
