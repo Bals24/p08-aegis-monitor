@@ -33,14 +33,15 @@ graph TD
     User -->|Administre| Grafana[Grafana Dashboards]
     User -->|Interroge| API[FastAPI Backend]
     
-    API -->|1. Lance les sondes| Probes[Moteur de Sondes Python]
-    Probes -->|2. HTTP/TCP/DNS| Targets[(Sites Web Cibles)]
+    API -->|1. Gère la config| DB[(PostgreSQL: Sites, Incidents, Historique)]
+    API -->|2. Lance les sondes| Probes[Moteur de Sondes Robuste]
     
-    Probes -->|3. Expose métriques| Prometheus[(Prometheus)]
-    Prometheus -->|4. Alerte si DOWN| Alertmanager[Alertmanager]
-    Alertmanager -->|5. Webhook| API
+    Probes -->|3. HTTP/TCP/DNS + Keyword Check| Targets[(Sites Web Cibles)]
     
-    API -->|6. Demande diagnostic| Ollama[(Ollama LLM Local)]
-    Ollama -.->|7. RCA en langage naturel| API
+    Probes -->|4. Expose métriques temps-réel| Prometheus[(Prometheus TSDB)]
+    Prometheus -->|5. Alerte si 3 échecs consécutifs| Alertmanager[Alertmanager]
+    Alertmanager -->|6. Webhook| API
+    
+    API -->|7. Demande diagnostic IA (Phase 7)| Ollama[(Ollama LLM Local)]
     
     Prometheus -.->|8. Visualisation| Grafana

@@ -6,7 +6,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, make_asgi_app
 
-from app.probes.monitor import TARGETS_STATUS, background_monitoring_task
+from app.api.alerts import router as alerts_router
+from app.api.sites import router as sites_router # <-- NOUVEAU
+from app.probes.monitor import background_monitoring_task
 
 REQUEST_COUNT = Counter(
     "http_requests_total",
@@ -19,18 +21,16 @@ REQUEST_LATENCY = Histogram(
     ["method", "endpoint"],
 )
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print(" Aegis Monitor API starting...")
+    print("🚀 Aegis Monitor API starting...")
     asyncio.create_task(background_monitoring_task())
     yield
-    print(" Aegis Monitor API shutting down...")
-
+    print("👋 Aegis Monitor API shutting down...")
 
 app = FastAPI(
     title="Aegis Monitor API",
-    description="API de monitoring de sites web (Projet P08 ESTI)",
+    description="API de monitoring de sites web (Projet P08 ESTI - Niveau M2)",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -42,6 +42,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Enregistrement des routes
+app.include_router(sites_router)   # <-- NOUVEAU
+app.include_router(alerts_router)
 
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
@@ -52,20 +55,13 @@ async def metrics_middleware(request: Request, call_next):
         endpoint=request.url.path,
         http_status=response.status_code,
     ).inc()
-    REQUEST_LATENCY.labels(method=request.method, endpoint=request.url.path).observe(
-        time.time() - start_time
-    )
+    REQUEST_LATENCY.labels(
+        method=request.method, endpoint=request.url.path
+    ).observe(time.time() - start_time)
     return response
-
 
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
-
-
-@app.get("/api/status")
-async def get_status():
-    return {"targets": list(TARGETS_STATUS.values())}
-
 
 @app.get("/health")
 async def health():
