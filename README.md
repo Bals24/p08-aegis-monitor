@@ -12,7 +12,7 @@
 
 ## 📌 À propos du projet
 
-**Aegis Monitor** est une solution d'observabilité web complète qui vérifie la disponibilité des sites, enregistre les temps de réponse et déclenche des alertes intelligentes. Conçu pour répondre aux exigences du projet P08 de l'ESTI, ce projet dépasse le niveau L2 en intégrant des pratiques **SRE (Site Reliability Engineering)**, **DevSecOps** et une brique d'**IA locale (AIOps)** pour le diagnostic automatique des causes racines (RCA).
+**Aegis Monitor** est une solution d'observabilité web complète qui vérifie la disponibilité des sites, enregistre les temps de réponse et déclenche des alertes intelligentes. Conçu pour répondre aux exigences du projet P08 de l'ESTI, ce projet dépasse le niveau en intégrant des pratiques **SRE (Site Reliability Engineering)**, **DevSecOps** et une brique d'**IA locale (AIOps)** pour le diagnostic automatique des causes racines (RCA).
 
 ###  Fonctionnalités Clés 
 - 🕵️ **Sondes Actives Multi-Protocoles** : Vérification HTTP/TCP/DNS avec métriques Prometheus natives.

@@ -3,6 +3,8 @@ services:
   backend:
     build: ./backend
     container_name: aegis-backend
+    ports:               
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://aegis:aegis@postgres:5432/aegis
       - PROMETHEUS_URL=http://prometheus:9090

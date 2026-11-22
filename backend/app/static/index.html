@@ -6,54 +6,31 @@
     <title>Aegis Monitor - Tableau de Bord</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
-    <style>
-        @keyframes pulse-ring {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            100% { transform: scale(2); opacity: 0; }
-        }
-        .animate-pulse-ring::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background-color: inherit;
-            border-radius: 50%;
-            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-            z-index: -1;
-        }
-    </style>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
     <div class="max-w-6xl mx-auto p-6">
-        <!-- En-tête du Dashboard -->
+        <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-700 pb-6 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-white flex items-center gap-3">
                     🛡️ Aegis Monitor 
-                    <span class="text-sm font-normal text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">Tableau de Bord Unifié</span>
+                    <span class="text-sm font-normal text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">Production</span>
                 </h1>
-                <p class="text-slate-400 mt-2">Surveillance temps réel, métriques de performance et alertes intelligentes (Projet P08 ESTI).</p>
+                <p class="text-slate-400 mt-2">Gestion, surveillance temps réel et historique des incidents.</p>
             </div>
-            <div class="text-right">
-                <div class="flex items-center justify-end gap-2 text-sm text-emerald-400 bg-emerald-400/10 px-4 py-2 rounded-full border border-emerald-400/20">
-                    <span class="relative flex h-3 w-3">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                    Système opérationnel
-                </div>
-                <div class="text-xs text-slate-500 mt-2">Actualisation automatique : 15s</div>
-            </div>
+            <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-lg">
+                <span>➕</span> Ajouter un site
+            </button>
         </div>
 
-        <!-- Cartes Résumé (KPI) -->
+        <!-- KPIs -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
                 <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Sites Surveillés</div>
                 <div class="text-4xl font-bold text-white mt-2" id="total-sites">-</div>
             </div>
             <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Disponibilité Globale</div>
+                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Disponibilité</div>
                 <div class="text-4xl font-bold text-emerald-400 mt-2" id="uptime-percent">-%</div>
             </div>
             <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
@@ -64,94 +41,168 @@
 
         <!-- Liste des Services -->
         <h2 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">📡 État des Services</h2>
-        <div id="services-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-slate-800 rounded-xl p-8 text-center text-slate-500 col-span-full border border-slate-700">
-                <div class="animate-pulse flex flex-col items-center gap-3">
-                    <div class="h-8 w-8 bg-slate-700 rounded-full"></div>
-                    <div>Chargement du tableau de bord...</div>
-                </div>
-            </div>
+        <div id="services-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+            <div class="bg-slate-800 rounded-xl p-8 text-center text-slate-500 col-span-full border border-slate-700">Chargement...</div>
         </div>
 
-        <!-- Pied de page -->
-        <div class="mt-12 pt-6 border-t border-slate-800 text-center text-slate-600 text-sm flex flex-col md:flex-row justify-between items-center gap-2">
-            <span>Projet P08 ESTI – Licence 2 Informatique (Poussé M2)</span>
-            <span class="font-mono text-slate-700">v1.0.0 | FastAPI + Prometheus + Grafana</span>
+        <!-- Historique des Alertes -->
+        <h2 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">🚨 Historique des Alertes</h2>
+        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <div id="alerts-list" class="divide-y divide-slate-700 max-h-96 overflow-y-auto">
+                <div class="p-6 text-center text-slate-500">Aucune alerte enregistrée pour le moment.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ajouter un site -->
+    <div id="add-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-slate-800 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-4">Ajouter un site à surveiller</h3>
+            <form id="add-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Nom du site</label>
+                    <input type="text" id="site-name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none" placeholder="Ex: Mon E-commerce">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">URL</label>
+                    <input type="url" id="site-url" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none" placeholder="https://example.com">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-400 mb-1">Mot-clé attendu (Optionnel)</label>
+                    <input type="text" id="site-keyword" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none" placeholder="Ex: Panier, Login">
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-400 hover:text-white transition-colors">Annuler</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors">Ajouter</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script>
+        // --- GESTION DU MODAL ---
+        function openModal() { document.getElementById('add-modal').classList.remove('hidden'); document.getElementById('add-modal').classList.add('flex'); }
+        function closeModal() { document.getElementById('add-modal').classList.add('hidden'); document.getElementById('add-modal').classList.remove('flex'); }
+
+        document.getElementById('add-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('site-name').value;
+            const url = document.getElementById('site-url').value;
+            const keyword = document.getElementById('site-keyword').value;
+            
+            try {
+                const res = await fetch('/api/sites/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url, name, expected_keyword: keyword })
+                });
+                if (res.ok) {
+                    closeModal();
+                    document.getElementById('add-form').reset();
+                    updateDashboard(); // Rafraîchir immédiatement
+                } else {
+                    alert("Erreur lors de l'ajout (le site existe peut-être déjà).");
+                }
+            } catch (err) { alert("Erreur réseau"); }
+        });
+
+        // --- SUPPRESSION ---
+        async function deleteSite(url) {
+            if (!confirm(`Voulez-vous vraiment arrêter la surveillance de ${url} ?`)) return;
+            try {
+                await fetch(`/api/sites/?url=${encodeURIComponent(url)}`, { method: 'DELETE' });
+                updateDashboard();
+            } catch (err) { alert("Erreur réseau"); }
+        }
+
+        // --- MISE À JOUR DU DASHBOARD ---
         async function updateDashboard() {
             try {
-                // Chemin relatif : ZÉRO problème de CORS car servi par la même API
-                const response = await fetch('/api/sites');
-                if (!response.ok) throw new Error("API unreachable");
-                const sites = await response.json();
+                const [sitesRes, alertsRes] = await Promise.all([
+                    fetch('/api/sites/'),
+                    fetch('/api/alerts/history')
+                ]);
                 
+                const sites = await sitesRes.json();
+                const alerts = await alertsRes.json();
+
+                // 1. Mise à jour des KPI et Liste
                 const container = document.getElementById('services-list');
                 container.innerHTML = '';
-                
                 let upCount = 0;
-                let downCount = 0;
 
                 sites.forEach(site => {
                     const isUp = site.status === 'UP';
-                    if (isUp) upCount++; else downCount++;
-
+                    if (isUp) upCount++;
+                    
                     const statusColor = isUp ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5';
                     const statusDot = isUp ? 'bg-emerald-500' : 'bg-red-500';
                     const statusText = isUp ? 'OPÉRATIONNEL' : 'EN PANNE';
                     
-                    const latencyText = site.response_time_ms ? `${site.response_time_ms} ms` : 'N/A';
                     const errorBlock = site.error ? `
-                        <div class="mt-4 p-3 bg-red-900/20 border border-red-500/20 rounded-lg">
-                            <div class="text-xs text-red-400 font-mono flex items-center gap-2">
-                                <span>⚠️</span> ${site.error}
-                            </div>
-                            <div class="text-xs text-red-300/70 mt-1">Échecs consécutifs : <span class="font-bold text-red-400">${site.consecutive_failures}</span></div>
-                        </div>
-                    ` : `<div class="mt-4 text-xs text-emerald-400/70 flex items-center gap-1">✅ Dernière vérification réussie</div>`;
+                        <div class="mt-3 p-2 bg-red-900/20 border border-red-500/20 rounded text-xs text-red-400 font-mono">⚠️ ${site.error} (Échecs: ${site.consecutive_failures})</div>
+                    ` : '';
 
                     const div = document.createElement('div');
-                    div.className = `rounded-xl p-5 border ${statusColor} transition-all hover:scale-[1.01] hover:shadow-xl duration-300`;
+                    div.className = `rounded-xl p-5 border ${statusColor} relative group`;
                     div.innerHTML = `
+                        <button onclick="deleteSite('${site.url}')" class="absolute top-4 right-4 text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title="Supprimer">🗑️</button>
                         <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
                             <div class="flex-1 min-w-0">
                                 <h3 class="font-semibold text-white text-lg truncate">${site.name}</h3>
-                                <a href="${site.url}" target="_blank" class="text-sm text-blue-400 hover:text-blue-300 hover:underline break-all transition-colors">${site.url}</a>
+                                <a href="${site.url}" target="_blank" class="text-sm text-blue-400 hover:underline break-all">${site.url}</a>
                                 ${errorBlock}
                             </div>
-                            <div class="text-right sm:text-right min-w-[120px]">
-                                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${isUp ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10' : 'border-red-500/30 text-red-400 bg-red-500/10'}">
-                                    <span class="relative flex h-2.5 w-2.5">
-                                        ${!isUp ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>' : ''}
-                                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 ${statusDot}"></span>
-                                    </span>
+                            <div class="text-right min-w-[120px]">
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${isUp ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400'}">
+                                    <span class="w-2 h-2 rounded-full ${statusDot} ${!isUp ? 'animate-pulse' : ''}"></span>
                                     ${statusText}
                                 </span>
-                                <div class="text-xs text-slate-400 mt-4">Latence: <span class="font-mono text-white font-medium">${latencyText}</span></div>
-                                <div class="text-xs text-slate-500 mt-1">${site.last_checked_at ? new Date(site.last_checked_at).toLocaleTimeString('fr-FR') : 'Jamais'}</div>
+                                <div class="text-xs text-slate-400 mt-2">Latence: <span class="font-mono text-white">${site.response_time_ms ? site.response_time_ms + ' ms' : 'N/A'}</span></div>
                             </div>
                         </div>
                     `;
                     container.appendChild(div);
                 });
 
-                // Mise à jour des KPI
                 document.getElementById('total-sites').textContent = sites.length;
-                document.getElementById('active-incidents').textContent = downCount;
-                const uptime = sites.length > 0 ? Math.round((upCount / sites.length) * 100) : 0;
-                document.getElementById('uptime-percent').textContent = `${uptime}%`;
+                document.getElementById('active-incidents').textContent = sites.length - upCount;
+                document.getElementById('uptime-percent').textContent = sites.length > 0 ? Math.round((upCount / sites.length) * 100) + '%' : '0%';
+
+                // 2. Mise à jour de l'historique des alertes
+                const alertsContainer = document.getElementById('alerts-list');
+                if (alerts.length === 0) {
+                    alertsContainer.innerHTML = '<div class="p-6 text-center text-slate-500">Aucune alerte enregistrée pour le moment.</div>';
+                } else {
+                    alertsContainer.innerHTML = '';
+                    alerts.reverse().forEach(alert => {
+                        const isFiring = alert.status === 'firing';
+                        const color = isFiring ? 'text-red-400 border-red-500/30 bg-red-500/10' : 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
+                        const icon = isFiring ? '🔴' : '🟢';
+                        const time = new Date(alert.time).toLocaleString('fr-FR');
+                        
+                        const div = document.createElement('div');
+                        div.className = 'p-4 flex items-start gap-4 hover:bg-slate-700/30 transition-colors';
+                        div.innerHTML = `
+                            <div class="text-2xl">${icon}</div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start">
+                                    <h4 class="font-semibold text-white">${alert.alert}</h4>
+                                    <span class="text-xs text-slate-500 font-mono">${time}</span>
+                                </div>
+                                <p class="text-sm text-slate-400 mt-1">${alert.summary}</p>
+                                <p class="text-xs text-slate-500 mt-1">Cible: <span class="text-blue-400">${alert.target}</span></p>
+                            </div>
+                        `;
+                        alertsContainer.appendChild(div);
+                    });
+                }
 
             } catch (error) {
-                document.getElementById('services-list').innerHTML = `
-                    <div class="bg-red-900/20 border border-red-500/30 rounded-xl p-6 text-center text-red-400 col-span-full">
-                        ⚠️ Impossible de joindre l'API. Le moteur de monitoring est peut-être en cours de démarrage.
-                    </div>`;
+                console.error("Erreur de chargement:", error);
             }
         }
         
-        // Premier chargement et rafraîchissement toutes les 15 secondes
         updateDashboard();
         setInterval(updateDashboard, 15000);
     </script>
