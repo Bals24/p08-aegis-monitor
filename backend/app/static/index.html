@@ -1,210 +1,488 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aegis Monitor - Tableau de Bord</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aegis Monitor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #f0f2f5;
+    --border: #dfe3e8;
+    --text: #151a21;
+    --text-2: #56606d;
+    --text-3: #8a93a0;
+    --accent: #2457d6;
+    --accent-hover: #1b47b5;
+    --ok: #12805c;
+    --ok-bg: #e4f4ed;
+    --err: #c62f2f;
+    --err-bg: #fbe9e9;
+    --warn: #b36b00;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1116;
+      --surface: #151a21;
+      --surface-2: #1b212a;
+      --border: #272e39;
+      --text: #e6e9ee;
+      --text-2: #98a2b0;
+      --text-3: #667080;
+      --accent: #4f7cf0;
+      --accent-hover: #6a91f5;
+      --ok: #3ecf9a;
+      --ok-bg: #12261f;
+      --err: #f26b6b;
+      --err-bg: #2a1618;
+      --warn: #e0a040;
+      color-scheme: dark;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* En-tête */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .brand h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .brand .sep { width: 1px; height: 20px; background: var(--border); }
+  .brand .sub { color: var(--text-2); font-size: 13px; white-space: nowrap; }
+  .topbar-right { display: flex; align-items: center; gap: 20px; }
+  .refresh { color: var(--text-3); font-size: 12px; white-space: nowrap; }
+
+  .btn {
+    font: inherit; font-weight: 500; cursor: pointer;
+    border-radius: 6px; padding: 8px 14px; border: 1px solid transparent;
+    transition: background-color .12s, border-color .12s, color .12s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost { background: transparent; color: var(--text-2); border-color: var(--border); }
+  .btn-ghost:hover { color: var(--text); background: var(--surface-2); }
+
+  main { padding: 28px 0 40px; }
+
+  /* Indicateurs */
+  .kpis {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 32px;
+  }
+  .kpi { padding: 20px 24px; }
+  .kpi + .kpi { border-left: 1px solid var(--border); }
+  .kpi-label { color: var(--text-2); font-size: 13px; }
+  .kpi-value { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  /* Sections */
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .section-head h2 { font-size: 15px; font-weight: 600; }
+  .section-head .count { color: var(--text-3); font-size: 13px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .section + .section { margin-top: 32px; }
+
+  /* Tableau des services */
+  .cols, .row-svc {
+    display: grid;
+    grid-template-columns: 148px minmax(0, 1fr) 110px 120px 40px;
+    gap: 16px; align-items: center; padding: 0 20px;
+  }
+  .cols {
+    height: 38px; background: var(--surface-2); border-bottom: 1px solid var(--border);
+    color: var(--text-2); font-size: 12px; font-weight: 500;
+  }
+  .row-svc { padding-top: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .row-svc:last-child { border-bottom: 0; }
+  .row-svc:hover { background: var(--surface-2); }
+  .cols .num, .row-svc .num { text-align: right; }
+
+  .status { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .status.up { color: var(--ok); } .status.up .dot { background: var(--ok); }
+  .status.down { color: var(--err); } .status.down .dot { background: var(--err); }
+
+  .svc-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .svc-url { color: var(--text-2); font-size: 12.5px; text-decoration: none; word-break: break-all; }
+  .svc-url:hover { color: var(--accent); text-decoration: underline; }
+  .svc-error {
+    margin-top: 8px; padding: 8px 10px; border-radius: 6px;
+    background: var(--err-bg); color: var(--err); font-size: 12px; line-height: 1.45;
+  }
+  .svc-error .fails { margin-top: 2px; opacity: .85; }
+  .metric { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--text-3); }
+
+  .icon-btn {
+    width: 28px; height: 28px; display: inline-grid; place-items: center;
+    background: transparent; border: 0; border-radius: 6px; cursor: pointer; color: var(--text-3);
+  }
+  .icon-btn:hover { color: var(--err); background: var(--err-bg); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* Incidents */
+  #alerts-list { max-height: 420px; overflow-y: auto; }
+  .alert {
+    display: grid; grid-template-columns: 3px minmax(0, 1fr); gap: 16px;
+    padding: 14px 20px 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .alert:last-child { border-bottom: 0; }
+  .alert-bar { border-radius: 0 2px 2px 0; }
+  .alert.firing .alert-bar { background: var(--err); }
+  .alert.resolved .alert-bar { background: var(--ok); }
+  .alert-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .alert-title { font-weight: 600; }
+  .badge { font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 999px; }
+  .alert.firing .badge { background: var(--err-bg); color: var(--err); }
+  .alert.resolved .badge { background: var(--ok-bg); color: var(--ok); }
+  .alert-time { margin-left: auto; color: var(--text-3); font-size: 12px; white-space: nowrap; }
+  .alert-summary { color: var(--text-2); margin-top: 4px; }
+  .alert-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-top: 10px; font-size: 12.5px; color: var(--text-3); }
+  .alert-meta a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .alert-meta a:hover { text-decoration: underline; }
+  .alert-meta code { color: var(--text-2); background: var(--surface-2); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+  .empty { padding: 32px 20px; text-align: center; color: var(--text-3); }
+  .error-banner { padding: 20px; background: var(--err-bg); color: var(--err); text-align: center; }
+  .skeleton { height: 14px; border-radius: 4px; background: var(--surface-2); animation: shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 50% { opacity: .5; } }
+
+  footer { border-top: 1px solid var(--border); padding: 16px 0; color: var(--text-3); font-size: 12px; }
+  footer .wrap { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  /* Modal */
+  .overlay {
+    position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(10, 13, 18, .55); padding: 16px; z-index: 50;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    width: 100%; max-width: 420px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 10px; padding: 24px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  }
+  .modal h3 { font-size: 16px; font-weight: 600; }
+  .modal p { color: var(--text-2); margin-top: 4px; font-size: 13px; }
+  .field { margin-top: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .field input {
+    width: 100%; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; padding: 9px 11px;
+  }
+  .field input::placeholder { color: var(--text-3); }
+  .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+
+  /* Responsive */
+  @media (max-width: 760px) {
+    .wrap { padding: 0 16px; }
+    .brand .sep, .brand .sub, .refresh { display: none; }
+    .kpis { grid-template-columns: 1fr; }
+    .kpi + .kpi { border-left: 0; border-top: 1px solid var(--border); }
+    .cols { display: none; }
+    .row-svc { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+    .row-svc .c-status { order: 1; }
+    .row-svc .c-main { order: 0; grid-column: 1; }
+    .row-svc .c-lat, .row-svc .c-time { text-align: left; }
+    .row-svc .c-act { grid-column: 2; grid-row: 1; justify-self: end; }
+    .row-svc .c-status { grid-column: 1; }
+    .row-svc .c-lat, .row-svc .c-time { grid-column: 1; }
+    .alert-time { margin-left: 0; width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
-    <div class="max-w-6xl mx-auto p-6">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-slate-700 pb-6 gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-white flex items-center gap-3">
-                    🛡️ Aegis Monitor 
-                    <span class="text-sm font-normal text-slate-400 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">Production</span>
-                </h1>
-                <p class="text-slate-400 mt-2">Gestion, surveillance temps réel et historique des incidents.</p>
-            </div>
-            <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-lg">
-                <span>➕</span> Ajouter un site
-            </button>
-        </div>
+<body>
 
-        <!-- KPIs -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Sites Surveillés</div>
-                <div class="text-4xl font-bold text-white mt-2" id="total-sites">-</div>
-            </div>
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Disponibilité</div>
-                <div class="text-4xl font-bold text-emerald-400 mt-2" id="uptime-percent">-%</div>
-            </div>
-            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-lg">
-                <div class="text-slate-400 text-sm font-medium uppercase tracking-wider">Incidents Actifs</div>
-                <div class="text-4xl font-bold text-red-400 mt-2" id="active-incidents">-</div>
-            </div>
-        </div>
-
-        <!-- Liste des Services -->
-        <h2 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">📡 État des Services</h2>
-        <div id="services-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
-            <div class="bg-slate-800 rounded-xl p-8 text-center text-slate-500 col-span-full border border-slate-700">Chargement...</div>
-        </div>
-
-        <!-- Historique des Alertes -->
-        <h2 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">🚨 Historique des Alertes</h2>
-        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
-            <div id="alerts-list" class="divide-y divide-slate-700 max-h-96 overflow-y-auto">
-                <div class="p-6 text-center text-slate-500">Aucune alerte enregistrée pour le moment.</div>
-            </div>
-        </div>
+<header>
+  <div class="wrap topbar">
+    <div class="brand">
+      <h1>Aegis Monitor</h1>
+      <span class="sep"></span>
+      <span class="sub">Production</span>
     </div>
-
-    <!-- Modal Ajouter un site -->
-    <div id="add-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-slate-800 rounded-xl p-6 w-full max-w-md border border-slate-700 shadow-2xl">
-            <h3 class="text-xl font-bold text-white mb-4">Ajouter un site à surveiller</h3>
-            <form id="add-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1">Nom du site</label>
-                    <input type="text" id="site-name" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none" placeholder="Ex: Mon E-commerce">
-                </div>
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1">URL</label>
-                    <input type="url" id="site-url" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none" placeholder="https://example.com">
-                </div>
-                <div>
-                    <label class="block text-sm text-slate-400 mb-1">Mot-clé attendu (Optionnel)</label>
-                    <input type="text" id="site-keyword" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white focus:border-blue-500 focus:outline-none" placeholder="Ex: Panier, Login">
-                </div>
-                <div class="flex justify-end gap-3 mt-6">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-slate-400 hover:text-white transition-colors">Annuler</button>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors">Ajouter</button>
-                </div>
-            </form>
-        </div>
+    <div class="topbar-right">
+      <span class="refresh mono" id="last-refresh"></span>
+      <button class="btn btn-primary" onclick="openModal()">Ajouter un site</button>
     </div>
+  </div>
+</header>
 
-    <script>
-        // --- GESTION DU MODAL ---
-        function openModal() { document.getElementById('add-modal').classList.remove('hidden'); document.getElementById('add-modal').classList.add('flex'); }
-        function closeModal() { document.getElementById('add-modal').classList.add('hidden'); document.getElementById('add-modal').classList.remove('flex'); }
+<main class="wrap">
 
-        document.getElementById('add-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('site-name').value;
-            const url = document.getElementById('site-url').value;
-            const keyword = document.getElementById('site-keyword').value;
-            
-            try {
-                const res = await fetch('/api/sites/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url, name, expected_keyword: keyword })
-                });
-                if (res.ok) {
-                    closeModal();
-                    document.getElementById('add-form').reset();
-                    updateDashboard(); // Rafraîchir immédiatement
-                } else {
-                    alert("Erreur lors de l'ajout (le site existe peut-être déjà).");
-                }
-            } catch (err) { alert("Erreur réseau"); }
-        });
+  <!-- Indicateurs -->
+  <section class="kpis" aria-label="Indicateurs">
+    <div class="kpi">
+      <div class="kpi-label">Sites surveillés</div>
+      <div class="kpi-value" id="total-sites">–</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Disponibilité globale</div>
+      <div class="kpi-value" id="uptime-percent">–</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Incidents actifs</div>
+      <div class="kpi-value" id="active-incidents">–</div>
+    </div>
+  </section>
 
-        // --- SUPPRESSION ---
-        async function deleteSite(url) {
-            if (!confirm(`Voulez-vous vraiment arrêter la surveillance de ${url} ?`)) return;
-            try {
-                await fetch(`/api/sites/?url=${encodeURIComponent(url)}`, { method: 'DELETE' });
-                updateDashboard();
-            } catch (err) { alert("Erreur réseau"); }
-        }
+  <!-- Services -->
+  <section class="section">
+    <div class="section-head">
+      <h2>Services</h2>
+      <span class="count" id="services-count"></span>
+    </div>
+    <div class="panel">
+      <div class="cols" aria-hidden="true">
+        <div>Statut</div>
+        <div>Site</div>
+        <div class="num">Latence</div>
+        <div class="num">Dernière vérification</div>
+        <div></div>
+      </div>
+      <div id="services-list">
+        <div style="padding:20px; display:grid; gap:12px;">
+          <div class="skeleton" style="width:40%"></div>
+          <div class="skeleton" style="width:65%"></div>
+          <div class="skeleton" style="width:50%"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        // --- MISE À JOUR DU DASHBOARD ---
-        async function updateDashboard() {
-            try {
-                const [sitesRes, alertsRes] = await Promise.all([
-                    fetch('/api/sites/'),
-                    fetch('/api/alerts/history')
-                ]);
-                
-                const sites = await sitesRes.json();
-                const alerts = await alertsRes.json();
+  <!-- Incidents -->
+  <section class="section">
+    <div class="section-head">
+      <h2>Historique des incidents</h2>
+    </div>
+    <div class="panel">
+      <div id="alerts-list">
+        <div class="empty">Aucun incident enregistré pour le moment.</div>
+      </div>
+    </div>
+  </section>
 
-                // 1. Mise à jour des KPI et Liste
-                const container = document.getElementById('services-list');
-                container.innerHTML = '';
-                let upCount = 0;
+</main>
 
-                sites.forEach(site => {
-                    const isUp = site.status === 'UP';
-                    if (isUp) upCount++;
-                    
-                    const statusColor = isUp ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-red-500/30 bg-red-500/5';
-                    const statusDot = isUp ? 'bg-emerald-500' : 'bg-red-500';
-                    const statusText = isUp ? 'OPÉRATIONNEL' : 'EN PANNE';
-                    
-                    const errorBlock = site.error ? `
-                        <div class="mt-3 p-2 bg-red-900/20 border border-red-500/20 rounded text-xs text-red-400 font-mono">⚠️ ${site.error} (Échecs: ${site.consecutive_failures})</div>
-                    ` : '';
+<footer>
+  <div class="wrap">
+    <span>Aegis Monitor</span>
+    <span class="mono">v1.0.0 </span>
+  </div>
+</footer>
 
-                    const div = document.createElement('div');
-                    div.className = `rounded-xl p-5 border ${statusColor} relative group`;
-                    div.innerHTML = `
-                        <button onclick="deleteSite('${site.url}')" class="absolute top-4 right-4 text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100" title="Supprimer">🗑️</button>
-                        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-semibold text-white text-lg truncate">${site.name}</h3>
-                                <a href="${site.url}" target="_blank" class="text-sm text-blue-400 hover:underline break-all">${site.url}</a>
-                                ${errorBlock}
-                            </div>
-                            <div class="text-right min-w-[120px]">
-                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${isUp ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400'}">
-                                    <span class="w-2 h-2 rounded-full ${statusDot} ${!isUp ? 'animate-pulse' : ''}"></span>
-                                    ${statusText}
-                                </span>
-                                <div class="text-xs text-slate-400 mt-2">Latence: <span class="font-mono text-white">${site.response_time_ms ? site.response_time_ms + ' ms' : 'N/A'}</span></div>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(div);
-                });
+<!-- Modal : ajouter un site -->
+<div id="add-modal" class="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <h3 id="modal-title">Ajouter un site</h3>
+    <p>Le site sera vérifié automatiquement à intervalle régulier.</p>
+    <form id="add-form">
+      <div class="field">
+        <label for="site-name">Nom du site</label>
+        <input type="text" id="site-name" required placeholder="Ex : Boutique en ligne">
+      </div>
+      <div class="field">
+        <label for="site-url">URL complète</label>
+        <input type="url" id="site-url" required placeholder="https://exemple.com">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+        <button type="submit" class="btn btn-primary">Ajouter</button>
+      </div>
+    </form>
+  </div>
+</div>
 
-                document.getElementById('total-sites').textContent = sites.length;
-                document.getElementById('active-incidents').textContent = sites.length - upCount;
-                document.getElementById('uptime-percent').textContent = sites.length > 0 ? Math.round((upCount / sites.length) * 100) + '%' : '0%';
+<script>
+  // --- UTILITAIRE : échappement HTML (les données viennent de l'API) ---
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
 
-                // 2. Mise à jour de l'historique des alertes
-                const alertsContainer = document.getElementById('alerts-list');
-                if (alerts.length === 0) {
-                    alertsContainer.innerHTML = '<div class="p-6 text-center text-slate-500">Aucune alerte enregistrée pour le moment.</div>';
-                } else {
-                    alertsContainer.innerHTML = '';
-                    alerts.reverse().forEach(alert => {
-                        const isFiring = alert.status === 'firing';
-                        const color = isFiring ? 'text-red-400 border-red-500/30 bg-red-500/10' : 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10';
-                        const icon = isFiring ? '🔴' : '🟢';
-                        const time = new Date(alert.time).toLocaleString('fr-FR');
-                        
-                        const div = document.createElement('div');
-                        div.className = 'p-4 flex items-start gap-4 hover:bg-slate-700/30 transition-colors';
-                        div.innerHTML = `
-                            <div class="text-2xl">${icon}</div>
-                            <div class="flex-1">
-                                <div class="flex justify-between items-start">
-                                    <h4 class="font-semibold text-white">${alert.alert}</h4>
-                                    <span class="text-xs text-slate-500 font-mono">${time}</span>
-                                </div>
-                                <p class="text-sm text-slate-400 mt-1">${alert.summary}</p>
-                                <p class="text-xs text-slate-500 mt-1">Cible: <span class="text-blue-400">${alert.target}</span></p>
-                            </div>
-                        `;
-                        alertsContainer.appendChild(div);
-                    });
-                }
+  // --- GESTION DU MODAL ---
+  const modal = document.getElementById('add-modal');
+  function openModal() {
+    modal.classList.add('open');
+    document.getElementById('site-name').focus();
+  }
+  function closeModal() { modal.classList.remove('open'); }
+  modal.addEventListener('click', (e) => { if (e.target.id === 'add-modal') closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
-            } catch (error) {
-                console.error("Erreur de chargement:", error);
-            }
-        }
-        
+  document.getElementById('add-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('site-name').value;
+    const url = document.getElementById('site-url').value;
+
+    try {
+      const res = await fetch('/api/sites/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, name, expected_keyword: "" })
+      });
+      if (res.ok) {
+        closeModal();
+        document.getElementById('add-form').reset();
         updateDashboard();
-        setInterval(updateDashboard, 15000);
-    </script>
+      } else {
+        const err = await res.json();
+        alert(err.message || "Erreur lors de l'ajout.");
+      }
+    } catch (err) {
+      alert("Erreur réseau. Vérifiez que le backend est en cours d'exécution.");
+    }
+  });
+
+  // --- SUPPRESSION D'UN SITE ---
+  async function deleteSite(url) {
+    if (!confirm(`Arrêter la surveillance de :\n${url} ?`)) return;
+    try {
+      const res = await fetch(`/api/sites/?url=${encodeURIComponent(url)}`, { method: 'DELETE' });
+      if (res.ok) updateDashboard();
+      else alert("Erreur lors de la suppression.");
+    } catch (err) {
+      alert("Erreur réseau");
+    }
+  }
+  document.getElementById('services-list').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-delete-url]');
+    if (btn) deleteSite(btn.dataset.deleteUrl);
+  });
+
+  const TRASH_ICON = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>';
+
+  // --- MISE À JOUR DU DASHBOARD ---
+  async function updateDashboard() {
+    try {
+      const [sitesRes, alertsRes] = await Promise.all([
+        fetch('/api/sites/'),
+        fetch('/api/alerts/history')
+      ]);
+
+      if (!sitesRes.ok || !alertsRes.ok) throw new Error("API unreachable");
+
+      const sites = await sitesRes.json();
+      const alerts = await alertsRes.json();
+
+      // 1. Liste des sites et KPI
+      const container = document.getElementById('services-list');
+      container.innerHTML = '';
+      let upCount = 0;
+
+      if (sites.length === 0) {
+        container.innerHTML = '<div class="empty">Aucun site surveillé. Ajoutez un site pour démarrer la surveillance.</div>';
+      }
+
+      sites.forEach(site => {
+        const isUp = site.status === 'UP';
+        if (isUp) upCount++;
+
+        const errorBlock = site.error ? `
+          <div class="svc-error mono">
+            <div>${esc(site.error)}</div>
+            <div class="fails">Échecs consécutifs : <strong>${esc(site.consecutive_failures)}</strong></div>
+          </div>` : '';
+
+        const div = document.createElement('div');
+        div.className = 'row-svc';
+        div.innerHTML = `
+          <div class="c-status">
+            <span class="status ${isUp ? 'up' : 'down'}"><span class="dot"></span>${isUp ? 'Opérationnel' : 'En panne'}</span>
+          </div>
+          <div class="c-main" style="min-width:0">
+            <div class="svc-name">${esc(site.name)}</div>
+            <a class="svc-url" href="${esc(site.url)}" target="_blank" rel="noopener noreferrer">${esc(site.url)}</a>
+            ${errorBlock}
+          </div>
+          <div class="c-lat num metric mono">${site.response_time_ms ? esc(site.response_time_ms) + ' ms' : '<span class="muted">N/A</span>'}</div>
+          <div class="c-time num metric mono">${site.last_checked_at ? new Date(site.last_checked_at).toLocaleTimeString('fr-FR') : '<span class="muted">Jamais</span>'}</div>
+          <div class="c-act" style="text-align:right">
+            <button class="icon-btn" data-delete-url="${esc(site.url)}" title="Arrêter la surveillance" aria-label="Arrêter la surveillance de ${esc(site.name)}">${TRASH_ICON}</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      const incidents = sites.length - upCount;
+      const uptime = sites.length > 0 ? Math.round((upCount / sites.length) * 100) : 0;
+
+      document.getElementById('total-sites').textContent = sites.length;
+      document.getElementById('services-count').textContent = `${upCount} sur ${sites.length} opérationnels`;
+
+      const uptimeEl = document.getElementById('uptime-percent');
+      uptimeEl.textContent = `${uptime}%`;
+      uptimeEl.style.color = sites.length === 0 ? '' : uptime === 100 ? 'var(--ok)' : uptime >= 50 ? 'var(--warn)' : 'var(--err)';
+
+      const incEl = document.getElementById('active-incidents');
+      incEl.textContent = incidents;
+      incEl.style.color = incidents > 0 ? 'var(--err)' : '';
+
+      // 2. Historique des alertes
+      const alertsContainer = document.getElementById('alerts-list');
+      if (alerts.length === 0) {
+        alertsContainer.innerHTML = '<div class="empty">Aucun incident enregistré pour le moment.</div>';
+      } else {
+        alertsContainer.innerHTML = '';
+        alerts.slice().reverse().forEach(alert => {
+          const isFiring = alert.status === 'firing';
+          const time = new Date(alert.time).toLocaleString('fr-FR');
+
+          const div = document.createElement('div');
+          div.className = `alert ${isFiring ? 'firing' : 'resolved'}`;
+          div.innerHTML = `
+            <div class="alert-bar"></div>
+            <div style="min-width:0">
+              <div class="alert-top">
+                <span class="alert-title">${esc(alert.alert)}</span>
+                <span class="badge">${isFiring ? 'En cours' : 'Résolu'}</span>
+                <span class="alert-time mono">${esc(time)}</span>
+              </div>
+              <p class="alert-summary">${esc(alert.summary)}</p>
+              <div class="alert-meta">
+                <a href="http://localhost:3000/d/aegis-overview/aegis-monitor" target="_blank" rel="noopener noreferrer">Voir les métriques dans Grafana</a>
+                <span>Cible <code class="mono">${esc(alert.target)}</code></span>
+              </div>
+            </div>
+          `;
+          alertsContainer.appendChild(div);
+        });
+      }
+
+      document.getElementById('last-refresh').textContent =
+        'Actualisé à ' + new Date().toLocaleTimeString('fr-FR');
+
+    } catch (error) {
+      console.error("Erreur de chargement:", error);
+      document.getElementById('services-list').innerHTML = `
+        <div class="error-banner">
+          Impossible de joindre l'API. Le moteur de monitoring est peut-être en cours de démarrage.
+        </div>`;
+    }
+  }
+
+  updateDashboard();
+  setInterval(updateDashboard, 15000);
+</script>
 </body>
 </html>

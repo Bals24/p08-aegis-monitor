@@ -5,7 +5,6 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
-# Historique en mémoire (les 50 dernières alertes)
 INCIDENT_HISTORY = []
 
 
@@ -37,17 +36,20 @@ async def receive_prometheus_alert(request: Request):
             "summary": summary,
         })
 
-        # Envoi Telegram
+        # Envoi Telegram AVEC LIEN DIRECT VERS LE DASHBOARD
         if settings.telegram_bot_token and settings.telegram_chat_id:
             emoji = "🚨" if severity == "critical" else "⚠️"
-            status_emoji = "🔴 DOWN" if status == "firing" else "🟢 RESOLVED"
+            status_emoji = "🔴 EN PANNE" if status == "firing" else "🟢 RÉTABLI"
+            
             message = (
                 f"{emoji} <b>Aegis Monitor</b>\n\n"
-                f"Status: {status_emoji}\n"
-                f"Alerte: {alert_name}\n"
-                f"Cible: {instance}\n"
-                f"Détails: {summary}\n"
+                f"État : {status_emoji}\n"
+                f"Alerte : {alert_name}\n"
+                f"Site : {instance}\n"
+                f"Détails : {summary}\n\n"
+                f"🔗 <a href='http://localhost:8000'>Ouvrir le Tableau de Bord</a>"
             )
+            
             url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
             payload = {
                 "chat_id": settings.telegram_chat_id,

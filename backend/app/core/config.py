@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     ollama_url: str = "http://ollama:11434"
     keycloak_url: str = "http://keycloak:8080"
     keycloak_realm: str = "aegis"
+    
+    # Variables Telegram (vides par défaut pour éviter le crash si non configurées)
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
 
     class Config:
         env_file = ".env"
